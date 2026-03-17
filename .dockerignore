@@ -1,0 +1,10 @@
+.git
+.github
+infra
+node_modules
+npm-debug.log
+**/.terraform
+**/.terraform.lock.hcl
+**/terraform.tfstate
+**/terraform.tfstate.backup
+
