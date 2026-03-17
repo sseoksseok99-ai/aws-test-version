@@ -128,14 +128,3 @@ resource "aws_ecs_service" "app" {
   }
 }
 
-data "aws_ecs_tasks" "service_tasks" {
-  cluster      = aws_ecs_cluster.this.id
-  service_name = aws_ecs_service.app.name
-}
-
-data "aws_ecs_task" "first" {
-  count    = length(data.aws_ecs_tasks.service_tasks.arns) > 0 ? 1 : 0
-  cluster  = aws_ecs_cluster.this.id
-  task_arn = data.aws_ecs_tasks.service_tasks.arns[0]
-}
-

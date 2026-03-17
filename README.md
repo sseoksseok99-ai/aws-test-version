@@ -54,7 +54,8 @@ terraform apply -auto-approve -var="region=ap-northeast-2"
 출력되는 `aws_role_to_assume` 값을 GitHub Secret `AWS_ROLE_TO_ASSUME`로 넣으면 됩니다.
 
 ## 결과 확인
-Terraform 출력(`ecs_task_public_ip`)에 태스크의 Public IP가 나오며,
+Terraform 출력에는 `ecr_repository_url`, `ecs_cluster_name`, `ecs_service_name`가 표시됩니다.
+태스크의 Public IP는 AWS Console의 ECS 서비스/Task 상세 화면에서 확인한 뒤,
 `http://<PublicIP>:8080/` 로 접속하면 샘플 앱이 응답합니다.
 
 ## 주의(비용/안전)
