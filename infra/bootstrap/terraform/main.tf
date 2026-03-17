@@ -75,6 +75,7 @@ data "aws_iam_policy_document" "gha_permissions" {
       "ecr:GetDownloadUrlForLayer",
       "ecr:InitiateLayerUpload",
       "ecr:ListImages",
+      "ecr:ListTagsForResource",
       "ecr:PutImage",
       "ecr:UploadLayerPart",
       "ecr:CreateRepository",
