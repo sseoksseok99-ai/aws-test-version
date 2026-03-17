@@ -6,6 +6,16 @@ locals {
   repo_full = "${var.github_owner}/${var.github_repo}"
 }
 
+# Create the ECR repository before GitHub Actions tries to push images.
+resource "aws_ecr_repository" "app" {
+  name                 = "ecs-minimal-sample"
+  image_tag_mutability = "MUTABLE"
+
+  image_scanning_configuration {
+    scan_on_push = true
+  }
+}
+
 # GitHub Actions OIDC provider (one per AWS account is typical)
 resource "aws_iam_openid_connect_provider" "github" {
   url = "https://token.actions.githubusercontent.com"

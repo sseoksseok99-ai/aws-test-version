@@ -13,13 +13,8 @@ data "aws_subnets" "default" {
   }
 }
 
-resource "aws_ecr_repository" "app" {
-  name                 = var.app_name
-  image_tag_mutability = "MUTABLE"
-
-  image_scanning_configuration {
-    scan_on_push = true
-  }
+data "aws_ecr_repository" "app" {
+  name = var.app_name
 }
 
 resource "aws_cloudwatch_log_group" "app" {
@@ -72,7 +67,7 @@ resource "aws_security_group" "task" {
 }
 
 locals {
-  image_uri = "${aws_ecr_repository.app.repository_url}:${var.image_tag}"
+  image_uri = "${data.aws_ecr_repository.app.repository_url}:${var.image_tag}"
 }
 
 resource "aws_ecs_task_definition" "app" {
