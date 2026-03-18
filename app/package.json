@@ -5,6 +5,9 @@
   "main": "server.js",
   "scripts": {
     "start": "node server.js"
+  },
+  "dependencies": {
+    "prom-client": "^15.1.3"
   }
 }
 
