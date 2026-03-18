@@ -13,8 +13,44 @@ data "aws_subnets" "default" {
   }
 }
 
+data "aws_internet_gateway" "default" {
+  filter {
+    name   = "attachment.vpc-id"
+    values = [data.aws_vpc.default.id]
+  }
+}
+
 data "aws_ecr_repository" "app" {
   name = var.app_name
+}
+
+locals {
+  public_subnet_ids = [
+    "subnet-06c063c81c28b2a52",
+    "subnet-0a92ccb2cf5cef7e8",
+    "subnet-0d8b103a22f04c387",
+    "subnet-0e1fe860eb6295d34",
+  ]
+}
+
+resource "aws_route_table" "public" {
+  vpc_id = data.aws_vpc.default.id
+
+  tags = {
+    Name = "${var.app_name}-public-rt"
+  }
+}
+
+resource "aws_route" "public_default" {
+  route_table_id         = aws_route_table.public.id
+  destination_cidr_block = "0.0.0.0/0"
+  gateway_id             = data.aws_internet_gateway.default.id
+}
+
+resource "aws_route_table_association" "public" {
+  for_each       = toset(local.public_subnet_ids)
+  subnet_id      = each.value
+  route_table_id = aws_route_table.public.id
 }
 
 resource "aws_cloudwatch_log_group" "app" {
@@ -114,7 +150,7 @@ resource "aws_ecs_service" "app" {
 
   network_configuration {
     assign_public_ip = true
-    subnets          = data.aws_subnets.default.ids
+    subnets          = local.public_subnet_ids
     security_groups  = [aws_security_group.task.id]
   }
 

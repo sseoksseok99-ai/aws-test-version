@@ -127,6 +127,38 @@ data "aws_iam_policy_document" "gha_permissions" {
     resources = ["*"]
   }
 
+  # Terraform remote state access
+  statement {
+    effect = "Allow"
+    actions = [
+      "s3:ListBucket",
+      "s3:GetBucketLocation"
+    ]
+    resources = [aws_s3_bucket.tf_state.arn]
+  }
+
+  statement {
+    effect = "Allow"
+    actions = [
+      "s3:GetObject",
+      "s3:PutObject",
+      "s3:DeleteObject",
+      "s3:AbortMultipartUpload"
+    ]
+    resources = ["${aws_s3_bucket.tf_state.arn}/*"]
+  }
+
+  statement {
+    effect = "Allow"
+    actions = [
+      "dynamodb:DescribeTable",
+      "dynamodb:GetItem",
+      "dynamodb:PutItem",
+      "dynamodb:DeleteItem"
+    ]
+    resources = [aws_dynamodb_table.tf_lock.arn]
+  }
+
   # ECS + CloudWatch logs read and deploy
   statement {
     effect = "Allow"
