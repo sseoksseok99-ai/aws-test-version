@@ -56,7 +56,7 @@ function pickSample(samples: PrometheusInstantSample[], matcher: (s: PrometheusI
   return match ? sampleToNumber(match) : 0
 }
 
-export function useInfraMetrics(refreshIntervalMs = 15_000) {
+export function useInfraMetrics(refreshIntervalMs = 5_000) {
   const [state, setState] = useState<InfraDashboardState>({
     loading: true,
     error: null,
@@ -71,9 +71,9 @@ export function useInfraMetrics(refreshIntervalMs = 15_000) {
 
   const cpuPerCoreQuery = useMemo(
     () => ({
-      user: '100 * (1 - avg by (cpu) (rate(node_cpu_seconds_total{mode="idle"}[1m])))',
-      system: '100 * avg by (cpu) (rate(node_cpu_seconds_total{mode="system"}[1m]))',
-      iowait: '100 * avg by (cpu) (rate(node_cpu_seconds_total{mode="iowait"}[1m]))',
+      user: '100 * (1 - avg by (cpu) (irate(node_cpu_seconds_total{mode="idle"}[30s])))',
+      system: '100 * avg by (cpu) (irate(node_cpu_seconds_total{mode="system"}[30s]))',
+      iowait: '100 * avg by (cpu) (irate(node_cpu_seconds_total{mode="iowait"}[30s]))',
     }),
     [],
   )
@@ -101,16 +101,16 @@ export function useInfraMetrics(refreshIntervalMs = 15_000) {
           queryInstant(cpuPerCoreQuery.user),
           queryInstant(cpuPerCoreQuery.system),
           queryInstant(cpuPerCoreQuery.iowait),
-          queryRange('100 * avg(rate(node_cpu_seconds_total{mode="iowait"}[1m]))', 30, 60),
+          queryRange('100 * avg(irate(node_cpu_seconds_total{mode="iowait"}[30s]))', 30, 5),
           queryInstant('node_memory_MemTotal_bytes'),
           queryInstant('node_memory_MemAvailable_bytes'),
           queryInstant('node_memory_Cached_bytes'),
           queryInstant('node_memory_Buffers_bytes'),
-          queryRange('100 * (1 - (avg(node_memory_MemAvailable_bytes) / avg(node_memory_MemTotal_bytes)))', 30, 60),
+          queryRange('100 * (1 - (avg(node_memory_MemAvailable_bytes) / avg(node_memory_MemTotal_bytes)))', 30, 5),
           queryInstant('node_filesystem_avail_bytes{fstype!~"tmpfs|overlay|squashfs"}'),
           queryInstant('node_filesystem_size_bytes{fstype!~"tmpfs|overlay|squashfs"}'),
-          queryRange('sum(rate(node_disk_read_bytes_total[1m])) / 1024 / 1024', 30, 60),
-          queryRange('sum(rate(node_disk_written_bytes_total[1m])) / 1024 / 1024', 30, 60),
+          queryRange('sum(irate(node_disk_read_bytes_total[30s])) / 1024 / 1024', 30, 5),
+          queryRange('sum(irate(node_disk_written_bytes_total[30s])) / 1024 / 1024', 30, 5),
         ])
 
         const cpuNames = Array.from(

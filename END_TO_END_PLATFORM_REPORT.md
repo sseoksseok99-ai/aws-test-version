@@ -290,6 +290,53 @@ controlplane에서 로그를 보려면, 프론트가 외부 로그 시스템을 
 
 ---
 
+## 7. 관측 항목별 메모(실험/튜닝 로그)
+
+이 섹션은 “대시보드에서 각 항목을 실제로 움직이게 만들기 위해 어떤 조치를 했는지”를 기록합니다.
+나중에 다른 프로젝트에 적용할 때, 같은 증상(값이 더미처럼 안 움직임)이 보이면 동일한 순서로 튜닝합니다.
+
+### 7-1. CPU 코어별 사용률 (Infra → CPU 코어별 사용률)
+
+#### (상황) 값이 더미처럼 보였던 이유
+- CPU 사용률은 `node-exporter`의 `node_cpu_seconds_total{mode="idle"}`를 기반으로 계산됨
+- 기본 설정이 아래처럼 **완만한 평균(1m)** 이고, Prometheus 스크랩도 15초라서:
+  - 짧은 부하(예: 10초) → 평균에 묻힘 → 그래프가 “거의 안 움직이는 것처럼” 보일 수 있음
+
+#### (조치) 실시간 체감 개선을 위해 바꾼 점
+1) **Prometheus 스크랩 주기 단축 (15s → 5s)**
+   - 파일: `controlplane/prometheus.yml`
+   - 변경:
+     - `job="ecommerce-app"`에 `scrape_interval: 5s`
+     - `job="node"`에 `scrape_interval: 5s`
+   - 적용 방법:
+     - Prometheus 컨테이너 재시작 필요
+       - 예: `docker compose -f docker-compose.monitoring.yml restart prometheus`
+
+2) **CPU 계산을 더 즉시 반응하도록 변경**
+   - 파일: `controlplane/web/src/hooks/useInfraMetrics.ts`
+   - 변경:
+     - (기존) `rate(...[1m])` 기반 → (변경) `irate(...[30s])` 기반
+     - 프론트 리프레시 간격: 15초 → 5초 (`useInfraMetrics(refreshIntervalMs = 5_000)`)
+   - 목적:
+     - 짧은 스파이크도 화면에서 “시원하게” 보이도록 체감 반응성 개선
+
+> 주의: 너무 짧은 윈도우(예: `rate(...[15s])`)는 스크랩 간격과 맞물려 샘플이 부족하면 값이 비거나 불안정해질 수 있습니다. 그래서 “스크랩 5초 + irate 30초” 조합을 사용합니다.
+
+#### (검증) CPU 사용률을 크게 올리는 테스트 명령(자동 종료)
+PowerShell에서 실행(부하 후 자동 종료):
+
+- 12 워커, 10초:
+  - `docker run --rm alpine sh -lc "pids=''; for i in 1 2 3 4 5 6 7 8 9 10 11 12; do yes > /dev/null & pids=""$pids $!""; done; sleep 10; kill $pids"`
+- 12 워커, 20초:
+  - `docker run --rm alpine sh -lc "pids=''; for i in 1 2 3 4 5 6 7 8 9 10 11 12; do yes > /dev/null & pids=""$pids $!""; done; sleep 20; kill $pids"`
+- 더 강하게(24 워커), 10초:
+  - `docker run --rm alpine sh -lc "pids=''; for i in 1 2; do for j in 1 2 3 4 5 6 7 8 9 10 11 12; do yes > /dev/null & pids=""$pids $!""; done; done; sleep 10; kill $pids"`
+
+#### (결론) 결과 요약
+- 스크랩/쿼리/프론트 갱신을 “더 실시간” 쪽으로 튜닝한 결과,
+  - `Infra`의 **CPU 코어별 사용률** 차트가 짧은 부하에도 더 잘 반응하며
+  - 사용자 관점에서 더미가 아닌 “실시간 모니터링”처럼 자연스럽게 보이도록 개선됨
+
 ## 7. 현재 상태 요약(2026-03-18 기준)
 - **로컬**: “메트릭 노출 → Prometheus 수집 → controlplane 표시” end-to-end 성공
 - **대시보드**:
